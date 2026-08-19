@@ -29,7 +29,8 @@ const FLAWED = {
     '<manifest xmlns:android="http://schemas.android.com/apk/res/android">\n' +
     '  <uses-sdk android:targetSdkVersion="33" />\n' +
     '  <application android:debuggable="true" />\n' +
-    '</manifest>',
+    '</manifest>\n' +
+    '{"name": "photovault", "private": true, "dependencies": {"react": "18.3.1"}}',
   now: NOW,
 };
 
@@ -50,7 +51,7 @@ describe('a withheld overall score survives the database', () => {
   it('serialises partial coverage with no overall', () => {
     const row = serializeReport(runScan({ ...EMPTY, title: 'PhotoVault Pro', now: NOW }));
     expect(row.overall).toBeNull();
-    expect(row.coverage).toBeCloseTo(1 / 3);
+    expect(row.coverage).toBeCloseTo(1 / 4); // 4 modules; only listing could run
     expect(row.assessed_count).toBe(1);
   });
 

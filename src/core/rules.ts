@@ -295,6 +295,34 @@ export const RULES = {
     asOf: '2026-08-19',
     statement: 'Finance and real-money gaming require declarations and licensing.',
   },
+  // ── watch ──────────────────────────────────────────────────────────────────
+  // Production observability. Every finding here names the gap and offers a
+  // menu, never a single vendor — see src/core/providers.ts.
+  'watch.errors.not-instrumented': {
+    authority: 'Google Play / App Store app quality guidance',
+    url: 'https://developer.android.com/quality',
+    asOf: '2026-08-19',
+    statement: 'A production app without crash or error reporting fails silently for its users.',
+  },
+  'watch.errors.not-initialised': {
+    authority: 'Shipworthy advisory',
+    url: 'https://developer.android.com/quality',
+    asOf: '2026-08-19',
+    statement: 'An installed error-reporting SDK reports nothing until it is initialised with a project key.',
+  },
+  'watch.sourcemaps.published': {
+    authority: 'OWASP — information exposure through source maps',
+    url: 'https://owasp.org/www-project-web-security-testing-guide/',
+    asOf: '2026-08-19',
+    statement: 'Publishing source maps exposes original source, comments, and file layout to anyone.',
+  },
+  'watch.uptime.undeclared': {
+    authority: 'Shipworthy advisory',
+    url: 'https://developer.android.com/quality',
+    asOf: '2026-08-19',
+    statement: 'Uptime monitoring cannot be detected from a build config and must be declared.',
+  },
+
   // ── name ───────────────────────────────────────────────────────────────────
   // Every rule here is backed by a live lookup or it does not fire. A finding
   // in this module without confidence:'verified' means the registry was never

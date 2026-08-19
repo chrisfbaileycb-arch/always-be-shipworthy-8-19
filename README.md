@@ -89,6 +89,8 @@ src/lib/supabase.ts   nullable client — null means local-only, not broken
 src/lib/auth.ts       passwordless email sign-in
 src/modules/claims.ts   claim substantiation — the quote-verification gate
 src/modules/name.ts     trademark + domain collision, from live registries only
+src/modules/watch.ts    production instrumentation readiness
+src/core/providers.ts   the observability provider catalog — no vendor privileged
 src/lib/persistence.ts save/list/delete, with null `overall` preserved
 src/ui/Account.tsx    sign-in bar and saved-scan list
 src/App.tsx           Phase 1 demo surface
@@ -108,7 +110,7 @@ supabase/functions/_shared/name-contract.ts    RDAP state machine, mark parsing
 | **Policy** | Privacy policy, platform billing, COPPA, permission purpose | Working |
 | **Claims** | Are your marketing promises substantiable? | Working |
 | **Name** | Trademark and domain collision | Working (trademarks need a key) |
-| **Watch** | Post-launch alerts, telemetry, health | Phase 4 |
+| **Watch** | Production instrumentation, vendor-neutral | Working |
 
 Build, Listing, and Policy are ported from SHIFT Pre-Flight, which held the only
 genuinely real analysis engine across the three predecessor codebases. The
@@ -294,6 +296,55 @@ RDAP needs no key and no setup. `rdap.org` sits behind Cloudflare at roughly ten
 requests per ten seconds, so TLD lookups run four at a time and the per-user rate
 limit paces the rest.
 
+## The Watch module, and why no vendor is privileged
+
+BrandGuard's pre-flight checklist hardcoded one vendor. Its "Production
+Instrumentation" milestone was a Sentry setup script — go to sentry.io, copy two
+DSNs, paste them into these two fields — and its schema carried
+`sentry_dsn_frontend` and `sentry_dsn_backend` columns to match. That was the
+right answer for the person who wrote it and the wrong default for everyone else.
+
+A launch-readiness tool that recognises one vendor reports a **false gap** for
+every team that chose differently. That is the same class of error as a false
+pass: the tool is confidently wrong about the app.
+
+So `src/core/providers.ts` is a catalog, and findings name the missing
+*capability* and offer the field:
+
+- **Error and crash reporting** — AppSignal, Bugsnag, Datadog, GlitchTip,
+  Highlight.io, Honeybadger, New Relic, OpenObserve, OpenTelemetry, Rollbar,
+  Sentry
+- **Uptime** — Better Stack, Checkly, Gatus, Uptime Kuma, UptimeRobot
+
+Providers are listed **alphabetically within category**, deliberately: there is no
+`recommended` flag, because we are not in a position to recommend one. A test
+asserts the ordering, asserts that every category contains a self-hostable and an
+open-source option, and asserts that no output anywhere contains "we recommend",
+"recommended", "best option", or "you should use". Another test walks the whole
+catalog and confirms **any** provider satisfies the instrumentation requirement.
+
+The catalog records only structural facts that stay true — package names, env-var
+conventions, self-hostable, open-source, docs URL. No pricing, no free-tier
+limits, no "best for small teams". A test blocks those from being added, because
+stale commercial advice inside a scanner whose pitch is that its rules are dated
+would be self-refuting.
+
+### Uptime is asked, not inferred
+
+Error reporting is detectable from dependencies. **Uptime monitoring is not** — it
+lives in an external dashboard and leaves no trace in a build config. So Watch
+does not guess. It reports uptime as *undeclared*, offers the menu, and waits for
+an answer; passing `uptimeDeclared` either way removes the finding. Inventing a
+"no uptime monitoring" finding from silence would be the same fabrication this
+codebase refuses everywhere else.
+
+### What else it checks
+
+An SDK installed but never given a project key — it reports nothing until
+initialised — and production source maps, which expose original source and file
+layout to anyone. The fix suggests `sourcemap: 'hidden'` so reporters can still
+symbolicate.
+
 ## Persistence is opt-in
 
 The scan runs locally, with no account and no network call. Saving a report is an
@@ -360,10 +411,14 @@ from a module that had nothing to read.
 
 ## Status
 
-**Phases 0–3 complete.** Engine, evidence contract, five working modules,
-Supabase auth, persistence with RLS, the secret-boundary guards, the Claims
-module with its quote-verification gate, and the Name module reading live
-registries — 127 tests, strict typecheck, clean build.
+**Phases 0–4 complete.** Engine, evidence contract, six modules, Supabase auth,
+persistence with RLS, the secret-boundary guards, the Claims quote-verification
+gate, the Name module reading live registries, and vendor-neutral Watch — 154
+tests, strict typecheck, clean build.
+
+Four of the six modules (Build, Listing, Policy, Watch) run in the free,
+signed-out, in-browser scan. Claims and Name require sign-in because they spend
+money or hit rate-limited third parties.
 
 Two integrations are written and unit-tested but have not been exercised against
 the live services, because the development environment has neither an Anthropic
@@ -377,4 +432,7 @@ tests. What remains is one real invocation of each to confirm the wire formats,
 particularly the USPTO response envelope, which is read defensively for exactly
 that reason.
 
-Next: **Phase 4, Watch** — post-launch alerts, telemetry, and health.
+Next: **continuous monitoring** — Watch currently answers "is this instrumented
+before launch". Turning it into live alerting needs scheduled checks, an
+ingestion path, and an alert model; the `apps` table and BrandGuard's health-record
+design are the starting point.

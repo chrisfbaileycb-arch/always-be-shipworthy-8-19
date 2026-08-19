@@ -30,7 +30,7 @@ describe('false-pass regression', () => {
   it('produces no score at all for a completely empty submission', () => {
     const report = runScan({ ...EMPTY, now: NOW });
 
-    expect(report.modules).toHaveLength(3);
+    expect(report.modules).toHaveLength(4);
     for (const m of report.modules) {
       expect(m.status).toBe('not_assessed');
       // The load-bearing assertion: there is no score property to read.
@@ -40,7 +40,7 @@ describe('false-pass regression', () => {
     const s = summarise(report);
     expect(s.overall).toBeNull(); // not 96, not 0 — null
     expect(s.assessedCount).toBe(0);
-    expect(s.notAssessedCount).toBe(3);
+    expect(s.notAssessedCount).toBe(4);
     expect(s.totalChecksRun).toBe(0);
   });
 
@@ -68,8 +68,8 @@ describe('false-pass regression', () => {
     // headline "100/100" here — the false-pass bug one level up.
     const s = summarise(report);
     expect(s.overall).toBeNull();
-    expect(s.notAssessedCount).toBe(2);
-    expect(s.coverage).toBeCloseTo(1 / 3);
+    expect(s.notAssessedCount).toBe(3);
+    expect(s.coverage).toBeCloseTo(1 / 4);
   });
 
   it('withholds the overall score whenever any module is unassessed', () => {
@@ -117,7 +117,8 @@ describe('a real submission is assessed normally', () => {
       '    <meta-data android:name="key" android:value="AIzaSyD-EXAMPLEKEY1234567890abcdefghijk" />\n' +
       '    <meta-data android:name="a" android:value="http://analytics.example.com/collect" />\n' +
       '  </application>\n' +
-      '</manifest>',
+      '</manifest>\n' +
+      '{"name": "photovault", "private": true, "dependencies": {"react": "18.3.1"}}',
     now: NOW,
   };
 
@@ -167,7 +168,7 @@ describe('a real submission is assessed normally', () => {
     const parsed = JSON.parse(toJSON(runScan(FLAWED)));
     expect(parsed.summary.findings.total).toBeGreaterThan(0);
     expect(parsed.rulesAsOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(parsed.modules).toHaveLength(3);
+    expect(parsed.modules).toHaveLength(4);
   });
 
   it('exports Markdown that cites rules and dates them', () => {

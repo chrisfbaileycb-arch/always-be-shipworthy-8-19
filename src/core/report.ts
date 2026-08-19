@@ -10,6 +10,7 @@
 import { auditBuild } from '../modules/build';
 import { auditListing } from '../modules/listing';
 import { auditPolicy } from '../modules/policy';
+import { auditWatch } from '../modules/watch';
 import { RULES_AS_OF } from './rules';
 import { isAssessed, MODULE_LABEL, type Finding, type ModuleResult, type Report } from './types';
 
@@ -19,6 +20,11 @@ export interface ScanInput {
   shortDescription: string;
   description: string;
   config: string;
+  /**
+   * Whether the user has declared uptime monitoring. Undefined means unanswered,
+   * which Watch reports as undeclared rather than guessing "no".
+   */
+  uptimeDeclared?: boolean;
   /** Injected rather than read from the clock, so a report is reproducible. */
   now?: Date;
 }
@@ -37,6 +43,11 @@ export function runScan(input: ScanInput): Report {
         description: input.description,
       }),
       auditPolicy({ config: input.config, description: input.description }),
+      auditWatch(
+        input.uptimeDeclared === undefined
+          ? { config: input.config }
+          : { config: input.config, uptimeDeclared: input.uptimeDeclared },
+      ).result,
     ],
   };
 }
