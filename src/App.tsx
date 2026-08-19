@@ -12,6 +12,9 @@ import { useState } from 'react';
 import { runScan, summarise, toJSON, toMarkdown } from './core/report';
 import { isAssessed, MODULE_LABEL, type Report, type Severity } from './core/types';
 import { SAMPLE_ANDROID, SAMPLE_THIN } from './samples';
+import { AuthBar, SavedReports } from './ui/Account';
+import { useAuth } from './lib/auth';
+import { saveReport } from './lib/persistence';
 
 const SEV_COLOR: Record<Severity, string> = {
   critical: 'var(--critical)',
@@ -54,6 +57,9 @@ export default function App() {
   const [config, setConfig] = useState('');
   const [report, setReport] = useState<Report | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [saveState, setSaveState] = useState<string | null>(null);
+  const [savedTick, setSavedTick] = useState(0);
 
   const scan = () =>
     setReport(runScan({ appName, title, shortDescription, description, config }));
@@ -74,16 +80,32 @@ export default function App() {
     setTimeout(() => setCopied(null), 2000);
   };
 
+  const save = async () => {
+    if (!report) return;
+    setSaveState('Saving…');
+    try {
+      await saveReport(report);
+      setSaveState('Saved');
+      setSavedTick((n) => n + 1);
+      setTimeout(() => setSaveState(null), 2500);
+    } catch (e) {
+      setSaveState((e as Error).message);
+    }
+  };
+
   const summary = report ? summarise(report) : null;
 
   return (
     <div style={{ maxWidth: 940, margin: '0 auto', padding: '40px 24px 80px' }}>
       <header style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 34, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Shipworthy</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 10 }}>
+          <h1 style={{ fontSize: 34, margin: 0, letterSpacing: '-0.02em' }}>Shipworthy</h1>
+          <AuthBar />
+        </div>
         <p style={{ margin: 0, color: 'var(--ink-2)', maxWidth: '62ch' }}>
           Audits your app configuration and store listing before you submit. Every finding quotes the
-          text that triggered it and cites the rule it touches. Runs entirely in your browser —
-          nothing is uploaded.
+          text that triggered it and cites the rule it touches. The scan runs entirely in your
+          browser — nothing leaves this page unless you choose to save a report.
         </p>
       </header>
 
@@ -232,7 +254,18 @@ export default function App() {
             <button onClick={() => copy('json')} style={ghost}>
               {copied === 'json' ? 'Copied' : 'Copy as JSON'}
             </button>
+            {user && (
+              <button onClick={() => void save()} style={ghost}>
+                {saveState ?? 'Save to history'}
+              </button>
+            )}
           </div>
+          {user && (
+            <p style={{ fontSize: 12, color: 'var(--ink-3)', margin: '10px 0 0' }}>
+              Saving uploads this report, including the evidence excerpts quoted above. Detected
+              credentials are masked before storage.
+            </p>
+          )}
 
           <p style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 18, marginBottom: 0 }}>
             Automated analysis of the material provided. Not legal advice, not a security audit, and
@@ -241,6 +274,8 @@ export default function App() {
           </p>
         </section>
       )}
+
+      <SavedReports refreshKey={savedTick} />
     </div>
   );
 }
