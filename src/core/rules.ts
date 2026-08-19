@@ -295,6 +295,70 @@ export const RULES = {
     asOf: '2026-08-19',
     statement: 'Finance and real-money gaming require declarations and licensing.',
   },
+  // ── claims ─────────────────────────────────────────────────────────────────
+  // Substantiation, not taste. Every entry names a rule an advertiser is
+  // actually held to, so a finding can cite something outside our own opinion.
+  'claims.superlative.unsubstantiated': {
+    authority: 'FTC Act §5 — advertising substantiation',
+    url: 'https://www.ftc.gov/business-guidance/resources/advertising-faqs-guide-small-business',
+    asOf: '2026-08-19',
+    statement: 'Objective superiority claims require substantiation held before the claim is made.',
+  },
+  'claims.comparison.competitor': {
+    authority: 'FTC Statement on Comparative Advertising',
+    url: 'https://www.ftc.gov/legal-library/browse/statements-policy/statement-policy-regarding-comparative-advertising',
+    asOf: '2026-08-19',
+    statement: 'Comparative claims must be truthful and substantiated on the compared attribute.',
+  },
+  'claims.efficacy.unproven': {
+    authority: 'FTC Act §5 — advertising substantiation',
+    url: 'https://www.ftc.gov/business-guidance/resources/advertising-faqs-guide-small-business',
+    asOf: '2026-08-19',
+    statement: 'Performance and results claims require competent and reliable evidence.',
+  },
+  'claims.earnings.income': {
+    authority: 'FTC Business Opportunity Rule / earnings-claim guidance',
+    url: 'https://www.ftc.gov/business-guidance/resources/business-opportunity-rule-compliance-guide',
+    asOf: '2026-08-19',
+    statement: 'Earnings claims require substantiation and disclosure of typical results.',
+  },
+  'claims.guarantee.absolute': {
+    authority: 'FTC Act §5 — deceptive absolute claims',
+    url: 'https://www.ftc.gov/business-guidance/resources/advertising-faqs-guide-small-business',
+    asOf: '2026-08-19',
+    statement: 'Unqualified guarantees must be honoured as stated, without hidden conditions.',
+  },
+  'claims.endorsement.unverified': {
+    authority: 'FTC Endorsement Guides (16 CFR Part 255)',
+    url: 'https://www.ftc.gov/business-guidance/resources/ftcs-endorsement-guides-what-people-are-asking',
+    asOf: '2026-08-19',
+    statement: 'Endorsements, ratings, and awards must be genuine and connections disclosed.',
+  },
+  'claims.security.absolute': {
+    authority: 'FTC data-security enforcement / Apple App Review 5.1',
+    url: 'https://www.ftc.gov/business-guidance/privacy-security/data-security',
+    asOf: '2026-08-19',
+    statement: 'Absolute security claims ("unhackable", "100% secure") are treated as deceptive.',
+  },
+  'claims.privacy.overbroad': {
+    authority: 'FTC Act §5 / Google Play user data policy',
+    url: 'https://support.google.com/googleplay/android-developer/answer/10144311',
+    asOf: '2026-08-19',
+    statement: 'Privacy promises must match actual data practices and declared disclosures.',
+  },
+  'claims.health.medical': {
+    authority: 'FTC Health Products Compliance Guidance',
+    url: 'https://www.ftc.gov/business-guidance/resources/health-products-compliance-guidance',
+    asOf: '2026-08-19',
+    statement: 'Health benefit claims require competent and reliable scientific evidence.',
+  },
+  'claims.pricing.misleading': {
+    authority: 'FTC pricing and negative-option guidance',
+    url: 'https://www.ftc.gov/business-guidance/resources/negative-option-rule',
+    asOf: '2026-08-19',
+    statement: 'Price, "free", and renewal terms must be disclosed clearly and conspicuously.',
+  },
+
   'policy.disclaimer.automated-results': {
     authority: 'FTC guidance on substantiation of advertising claims',
     url: 'https://www.ftc.gov/business-guidance/resources/advertising-faqs-guide-small-business',

@@ -87,10 +87,13 @@ src/modules/policy.ts   privacy policy, billing, COPPA, permission justification
 src/lib/env.ts        the client/server secret boundary, enforced
 src/lib/supabase.ts   nullable client — null means local-only, not broken
 src/lib/auth.ts       passwordless email sign-in
+src/modules/claims.ts   claim substantiation — the quote-verification gate
 src/lib/persistence.ts save/list/delete, with null `overall` preserved
 src/ui/Account.tsx    sign-in bar and saved-scan list
 src/App.tsx           Phase 1 demo surface
 supabase/migrations/  schema, RLS policies, grants
+supabase/functions/claims-analyze/   the model call — holds the key and the prompt
+supabase/functions/_shared/claims-contract.ts  prompt, schema, quote matcher
 ```
 
 ## Modules
@@ -100,7 +103,7 @@ supabase/migrations/  schema, RLS policies, grants
 | **Build** | Hardcoded keys, cleartext, debug flags, permissions, SDK floor | Working |
 | **Listing** | Metadata limits, keyword stuffing, brand mentions, claims | Working |
 | **Policy** | Privacy policy, platform billing, COPPA, permission purpose | Working |
-| **Claims** | Are your marketing promises substantiable? | Phase 2 |
+| **Claims** | Are your marketing promises substantiable? | Working |
 | **Name** | Trademark, domain, handle collision | Phase 3 |
 | **Watch** | Post-launch alerts, telemetry, health | Phase 4 |
 
@@ -144,6 +147,77 @@ Provider keys for Phase 2 go in Supabase Edge Function secrets
 (`supabase secrets set ANTHROPIC_API_KEY=…`), never the bundle. WorkflowVerify
 kept its OpenAI key in browser localStorage; its own README flagged that as a V1
 shortcut. That shortcut is not carried forward.
+
+## The Claims module, and trusting a model
+
+Claims is the only module whose findings come from a model instead of a regex,
+so it is where the evidence rule has to be enforced hardest. A fabricated quote
+would otherwise pass through the same `makeFinding()` a real one does — which is
+exactly how the predecessor came to display USPTO serial numbers for a registry
+it never queried.
+
+**The gate: every quote the model returns is looked up in the source text the
+user submitted.** A quote that cannot be located is discarded and counted. The
+excerpt stored on the finding is the *source's* wording, not the model's, so the
+user reads back their own sentence character for character even when the model
+straightened a quotation mark on the way through.
+
+Only whitespace and the punctuation a model habitually "improves" (curly quotes,
+em dashes, non-breaking spaces) are normalised for matching. Change a word and
+the quote is dropped. `src/modules/claims.test.ts` feeds the gate deliberately
+dishonest output and asserts it is thrown away.
+
+Model findings are always `confidence: 'heuristic'`. A model is not an
+authoritative source, and `'verified'` is reserved for a live registry lookup.
+
+### Two cost tiers
+
+Deterministic pre-checks run locally, free and signed-out, on absolute language
+that is indefensible however good the app is — "unhackable", "we never collect
+any data", "guaranteed", a dollar-per-month income figure. The model pass runs
+server-side behind auth and a rate limit, and finds what a pattern cannot:
+implied comparisons, unstated conditions, promises assembled across a sentence.
+
+When both tiers flag the same sentence the score is charged once — deduplicated
+by overlapping character span, not by matching excerpt strings. Two genuinely
+different claims in one sentence ("100% secure" and "completely unhackable") stay
+two findings.
+
+### What the client may influence
+
+The text to analyse. That is all.
+
+The system prompt, model, schema, token ceiling, and effort level are fixed in
+the Edge Function. A client that could supply a prompt could instruct the model
+to fabricate findings or turn a spend-limited endpoint into a general-purpose
+model proxy on our bill. The listing copy is passed inside a delimiter and
+labelled as content to review, never as instructions.
+
+The prompt is not shipped to the browser, and `npm run verify` asserts it: the
+bundle is scanned for prompt fingerprints, so a future refactor that imports it
+for convenience fails the build rather than publishing it.
+
+### Cost control
+
+`claim_rate_limit` is a `SECURITY DEFINER` function that counts a user's calls in
+the last hour and day — 20/hour, 100/day by default. It lives in the database
+because an in-memory counter resets on every Edge Function cold start. Usage rows
+are inserted only by that definer function, so a client cannot forge or delete
+its history to reset the limit, and usage is recorded only *after* a successful
+call, so a provider outage does not burn quota.
+
+### Deploying it
+
+```bash
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase functions deploy claims-analyze
+supabase db push
+```
+
+The endpoint degrades honestly: with no key set it returns `not_configured`, and
+the local pre-checks still run. Every failure mode has a stable machine-readable
+code and a message safe to show a user — provider internals are logged, never
+returned.
 
 ## Persistence is opt-in
 
@@ -211,10 +285,15 @@ from a module that had nothing to read.
 
 ## Status
 
-**Phase 1 complete.** Engine, evidence contract, three ported modules, Supabase
-auth, persistence with RLS, and the secret-boundary guards — 83 tests, strict
-typecheck, clean build.
+**Phases 0–2 complete.** Engine, evidence contract, four working modules,
+Supabase auth, persistence with RLS, the secret-boundary guards, and the Claims
+module with its quote-verification gate — 109 tests, strict typecheck, clean
+build.
 
-Next: **Phase 2, the Claims module** — WorkflowVerify's analysis engine repointed
-at the user's own listing copy, with the provider key behind an Edge Function.
-Then a real Name module (Phase 3) and Watch (Phase 4).
+The Claims Edge Function has not yet been exercised against the live Anthropic
+API — there is no key in the development environment. The contract, the
+validators, and the gate are fully tested; the provider call itself needs one
+real invocation to confirm.
+
+Next: **Phase 3, a real Name module** — USPTO TSDR and RDAP, or heuristic-only
+with every fabricated serial number stripped. Then Watch (Phase 4).

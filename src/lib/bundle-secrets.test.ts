@@ -63,6 +63,25 @@ describe('built bundle contains no secrets', () => {
     expect(leaks, `Secrets found in build output:\n${leaks.join('\n')}`).toEqual([]);
   });
 
+  it('does not ship the claims system prompt to the browser', () => {
+    if (!existsSync(DIST)) return;
+    // The prompt is the instruction channel for a paid endpoint. It lives in the
+    // Edge Function; the client sends only text. Today tree-shaking keeps it out
+    // because src/modules/claims.ts imports the validators and not the prompt —
+    // a future refactor that imports it for convenience would silently publish
+    // it, so assert rather than assume.
+    const files = walk(DIST).filter((f) => TEXTUAL.test(f));
+    const fingerprints = ['THE ONE ABSOLUTE RULE', 'WHAT COUNTS AS A CLAIM WORTH FLAGGING'];
+    const leaks: string[] = [];
+    for (const file of files) {
+      const text = readFileSync(file, 'utf8');
+      for (const fp of fingerprints) {
+        if (text.includes(fp)) leaks.push(`${file.replace(process.cwd() + '/', '')}: "${fp}"`);
+      }
+    }
+    expect(leaks, `Claims system prompt found in build output:\n${leaks.join('\n')}`).toEqual([]);
+  });
+
   it('does not inline any variable whose name marks it server-side', () => {
     if (!existsSync(DIST)) return;
     const files = walk(DIST).filter((f) => TEXTUAL.test(f));
