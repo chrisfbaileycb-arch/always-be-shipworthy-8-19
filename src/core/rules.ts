@@ -295,6 +295,37 @@ export const RULES = {
     asOf: '2026-08-19',
     statement: 'Finance and real-money gaming require declarations and licensing.',
   },
+  // ── name ───────────────────────────────────────────────────────────────────
+  // Every rule here is backed by a live lookup or it does not fire. A finding
+  // in this module without confidence:'verified' means the registry was never
+  // reached, and it must say so rather than guess.
+  'name.trademark.live-mark': {
+    authority: 'USPTO Open Data Portal — trademark search',
+    url: 'https://data.uspto.gov/apis/getting-started',
+    asOf: '2026-08-19',
+    reviewBy: '2026-12-01',
+    statement: 'A live registered mark in a related class is a direct collision risk.',
+  },
+  'name.trademark.similar-mark': {
+    authority: 'USPTO Open Data Portal — trademark search',
+    url: 'https://data.uspto.gov/apis/getting-started',
+    asOf: '2026-08-19',
+    reviewBy: '2026-12-01',
+    statement: 'Marks similar to an existing registration can be refused for likelihood of confusion.',
+  },
+  'name.domain.registered': {
+    authority: 'RDAP (RFC 9082) — authoritative registry response',
+    url: 'https://datatracker.ietf.org/doc/html/rfc9082',
+    asOf: '2026-08-19',
+    statement: 'The domain resolves to an existing registration in the authoritative registry.',
+  },
+  'name.domain.unregistered': {
+    authority: 'RDAP (RFC 9082) — authoritative registry response',
+    url: 'https://datatracker.ietf.org/doc/html/rfc9082',
+    asOf: '2026-08-19',
+    statement: 'No registration record exists. Not the same as being available to register.',
+  },
+
   // ── claims ─────────────────────────────────────────────────────────────────
   // Substantiation, not taste. Every entry names a rule an advertiser is
   // actually held to, so a finding can cite something outside our own opinion.

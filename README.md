@@ -88,12 +88,15 @@ src/lib/env.ts        the client/server secret boundary, enforced
 src/lib/supabase.ts   nullable client — null means local-only, not broken
 src/lib/auth.ts       passwordless email sign-in
 src/modules/claims.ts   claim substantiation — the quote-verification gate
+src/modules/name.ts     trademark + domain collision, from live registries only
 src/lib/persistence.ts save/list/delete, with null `overall` preserved
 src/ui/Account.tsx    sign-in bar and saved-scan list
 src/App.tsx           Phase 1 demo surface
 supabase/migrations/  schema, RLS policies, grants
 supabase/functions/claims-analyze/   the model call — holds the key and the prompt
 supabase/functions/_shared/claims-contract.ts  prompt, schema, quote matcher
+supabase/functions/name-check/       RDAP + USPTO lookups
+supabase/functions/_shared/name-contract.ts    RDAP state machine, mark parsing
 ```
 
 ## Modules
@@ -104,7 +107,7 @@ supabase/functions/_shared/claims-contract.ts  prompt, schema, quote matcher
 | **Listing** | Metadata limits, keyword stuffing, brand mentions, claims | Working |
 | **Policy** | Privacy policy, platform billing, COPPA, permission purpose | Working |
 | **Claims** | Are your marketing promises substantiable? | Working |
-| **Name** | Trademark, domain, handle collision | Phase 3 |
+| **Name** | Trademark and domain collision | Working (trademarks need a key) |
 | **Watch** | Post-launch alerts, telemetry, health | Phase 4 |
 
 Build, Listing, and Policy are ported from SHIFT Pre-Flight, which held the only
@@ -219,6 +222,78 @@ the local pre-checks still run. Every failure mode has a stable machine-readable
 code and a message safe to show a user — provider internals are logged, never
 returned.
 
+## The Name module, and two ways to lie about a name
+
+This is the module the predecessor got wrong, so it is worth being explicit.
+
+BrandGuard's scan engine printed findings like *"Smartsheet Inc., Serial
+87/123441, Reg 5,823,441"* from a hardcoded dictionary of 23 tokens with invented
+numbers, behind a $99 paywall. The simulation was disclosed in its terms, but a
+card showing a registrant, a serial, and a registration number reads as a
+retrieved record whatever the footer says.
+
+**Nothing here renders an identifier the registry did not return.** There is no
+default, no placeholder, no formatting branch that supplies one — a hit with no
+serial number renders as `"PHOTOVAULT"` and nothing more. A test asserts the
+absence.
+
+### RDAP has three states, and the third one matters
+
+The tempting reading is "404 means the domain is free". That is the false-pass
+bug in a new costume:
+
+- **`rdap.org` is a bootstrap redirector, not a data source.** Its own 404 means
+  it knows no authoritative RDAP server for that TLD — which says nothing about
+  the domain.
+- Only a **404 from the authoritative registry** means no registration record.
+- And that still is not *available to register*: reserved, premium, blocked, and
+  registry-held names have no record and cannot be bought.
+
+So `DomainState` is `registered | unregistered | unknown`, the classifier keys
+off which host actually answered after redirects, and the copy never promises
+availability. Rate limits, timeouts, and errors are all `unknown` — never free.
+
+### What USPTO actually offers
+
+Confirmed against USPTO documentation on 2026-08-19, because the obvious plan
+does not work:
+
+- **TSDR cannot search by name.** It is a status API keyed by serial number,
+  registration number, reference number, or international registration number.
+  It cannot answer "is this name taken". It also requires an API key.
+- **Mark-text search is the Open Data Portal**, and since **18 June 2026** the ODP
+  requires a signed-in USPTO.gov account — so that needs a key too.
+
+There is no keyless USPTO path. Registration is free, but it is a step.
+
+**Without `USPTO_API_KEY` the trademark half reports `unknown`,** contributes no
+`checksRun` entries, and is listed as a gap. It does not fall back to pattern
+matching and present the result as clearance. If no lookup at all succeeds, the
+module returns `not_assessed`: an unreachable registry means an unknown name, not
+a clean one.
+
+Findings from a live registry response are the only ones in the codebase marked
+`confidence: 'verified'`.
+
+### Why direct calls, not an integration platform
+
+RDAP and USPTO are queried straight from the Edge Function. A direct call answers
+in a few hundred milliseconds against seconds of polling and webhook lag, costs
+nothing per run instead of burning task quota on every name a user tries, and is
+one less service to monitor. The only thing an integration platform would add
+here is latency and a bill.
+
+### Deploying it
+
+```bash
+supabase secrets set USPTO_API_KEY=...   # optional; without it trademarks report unknown
+supabase functions deploy name-check
+```
+
+RDAP needs no key and no setup. `rdap.org` sits behind Cloudflare at roughly ten
+requests per ten seconds, so TLD lookups run four at a time and the per-user rate
+limit paces the rest.
+
 ## Persistence is opt-in
 
 The scan runs locally, with no account and no network call. Saving a report is an
@@ -285,15 +360,21 @@ from a module that had nothing to read.
 
 ## Status
 
-**Phases 0–2 complete.** Engine, evidence contract, four working modules,
-Supabase auth, persistence with RLS, the secret-boundary guards, and the Claims
-module with its quote-verification gate — 109 tests, strict typecheck, clean
-build.
+**Phases 0–3 complete.** Engine, evidence contract, five working modules,
+Supabase auth, persistence with RLS, the secret-boundary guards, the Claims
+module with its quote-verification gate, and the Name module reading live
+registries — 127 tests, strict typecheck, clean build.
 
-The Claims Edge Function has not yet been exercised against the live Anthropic
-API — there is no key in the development environment. The contract, the
-validators, and the gate are fully tested; the provider call itself needs one
-real invocation to confirm.
+Two integrations are written and unit-tested but have not been exercised against
+the live services, because the development environment has neither an Anthropic
+key nor outbound access to those hosts:
 
-Next: **Phase 3, a real Name module** — USPTO TSDR and RDAP, or heuristic-only
-with every fabricated serial number stripped. Then Watch (Phase 4).
+- `claims-analyze` → the Anthropic Messages API
+- `name-check` → `rdap.org` and the USPTO Open Data Portal
+
+Contracts, parsers, state machines, and every failure branch are covered by
+tests. What remains is one real invocation of each to confirm the wire formats,
+particularly the USPTO response envelope, which is read defensively for exactly
+that reason.
+
+Next: **Phase 4, Watch** — post-launch alerts, telemetry, and health.
