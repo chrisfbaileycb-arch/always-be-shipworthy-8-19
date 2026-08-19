@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+  --bg: #f6f8f8;
+  --surface: #ffffff;
+  --ink: #10201f;
+  --ink-2: #3e5251;
+  --ink-3: #6b7f7e;
+  --line: #dce5e4;
+  --accent: #0e5f63;
+  --critical: #a33226;
+  --warn: #8e620f;
+  --info: #2b5f8e;
+  --none: #748886;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1414;
+    --surface: #121e1e;
+    --ink: #e8efee;
+    --ink-2: #a8bcba;
+    --ink-3: #7a908e;
+    --line: #243534;
+    --accent: #56c3c8;
+    --critical: #ec7f72;
+    --warn: #dca845;
+    --info: #7fb2dd;
+    --none: #8a9c9b;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+}
+
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
