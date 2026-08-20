@@ -39,8 +39,9 @@ export function healthSummary(statuses: Record<string, HealthStatus>) {
   };
 }
 
-export function vesselMarkdown(project: string, statuses: Record<string, HealthStatus>): string {
+export function vesselMarkdown(project: string, statuses: Record<string, HealthStatus>, providers: string[] = []): string {
   const lines = [`# ${project || 'Untitled project'} — Continuous Vessel`, '', '> Statuses are user-declared unless a connected evidence source says otherwise.', ''];
+  lines.push('## Selected stack', ...(providers.length ? providers.map((provider) => `- ${provider}`) : ['- No providers declared']), '');
   for (const check of VESSEL_CHECKS) {
     lines.push(`## ${check.title}`, `- Status: ${(statuses[check.id] ?? 'unknown').toUpperCase()}`, `- Cadence: ${check.cadence}`, `- Evidence required: ${check.evidence}`, `- Next action: ${check.remediation}`, '');
   }

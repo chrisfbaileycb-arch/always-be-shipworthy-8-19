@@ -11,10 +11,11 @@ describe('continuous vessel', () => {
   });
 
   it('exports evidence and the safety boundary', () => {
-    const output = vesselMarkdown('Bookkeeper in a Box', { security: 'yellow' });
+    const output = vesselMarkdown('Bookkeeper in a Box', { security: 'yellow' }, ['Supabase', 'Sentry']);
     expect(output).toContain('# Bookkeeper in a Box — Continuous Vessel');
     expect(output).toContain('Status: YELLOW');
     expect(output).toContain('Evidence required');
+    expect(output).toContain('- Supabase');
     expect(output).toContain('No credentials');
   });
 });
