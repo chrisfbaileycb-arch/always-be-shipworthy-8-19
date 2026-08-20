@@ -31,8 +31,8 @@ export function buildDiscernment(input: WorkflowInput): DiscernmentReport {
   const all = sentences(input.content);
   const claimLike = all.filter((item) => /\b(\$\s?\d|guarantee|easy|fast|daily|weekly|monthly|best|proven|anyone|passive|risk[- ]?free|always|never|100%)\b/i.test(item));
   const claims = (claimLike.length ? claimLike : all.slice(0, 3)).slice(0, 6).map<ClaimAssessment>((quote) => {
-    if (/\b(guarantee|risk[- ]?free|anyone|always|never|100%)\b/i.test(quote)) return { quote, classification: 'Missing material context', concern: 'Absolute language needs conditions, limitations, and evidence.' };
     if (/\$\s?\d|\b\d[\d,]*\s*(?:a day|daily|monthly|per month)\b/i.test(quote)) return { quote, classification: 'Outcome appears atypical', concern: 'The source gives an earnings outcome without typical-results evidence.' };
+    if (/\b(guarantee|risk[- ]?free|anyone|always|never|100%)\b/i.test(quote)) return { quote, classification: 'Missing material context', concern: 'Absolute language needs conditions, limitations, and evidence.' };
     if (/\b(easy|fast|passive|proven|best)\b/i.test(quote)) return { quote, classification: 'Reasonable but unverified', concern: 'The result may depend on experience, audience, timing, or omitted work.' };
     return { quote, classification: 'Unable to determine', concern: 'The supplied material does not include enough external evidence to verify this statement.' };
   });
