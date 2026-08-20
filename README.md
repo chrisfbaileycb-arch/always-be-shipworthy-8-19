@@ -93,7 +93,8 @@ src/modules/watch.ts    production instrumentation readiness
 src/core/providers.ts   the observability provider catalog — no vendor privileged
 src/lib/persistence.ts save/list/delete, with null `overall` preserved
 src/ui/Account.tsx    sign-in bar and saved-scan list
-src/App.tsx           Phase 1 demo surface
+src/App.tsx           commercial audit dashboard and entitlement storefront
+src/lib/commerce.ts  pricing registry and Stripe/sandbox checkout trigger
 supabase/migrations/  schema, RLS policies, grants
 supabase/functions/claims-analyze/   the model call — holds the key and the prompt
 supabase/functions/_shared/claims-contract.ts  prompt, schema, quote matcher
